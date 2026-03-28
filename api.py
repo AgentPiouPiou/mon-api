@@ -22,7 +22,15 @@ def lancer():
 
 @app.route("/command")
 def get_command():
-    return jsonify(command)
+    global command
+    
+    # on récupère la commande actuelle
+    current = command.copy()
+    
+    # on réinitialise immédiatement après lecture
+    command["action"] = ""
+    
+    return jsonify(current)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
