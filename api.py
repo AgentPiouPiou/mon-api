@@ -2,35 +2,30 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-command = {"action": ""}
+command = {}
 
-SECRET = "MON_CODE_SECRET"
+@app.route("/set-command", methods=["POST"])
+def set_command():
+    global command
+    data = request.json
 
-@app.route("/")
-def home():
-    return "API OK"
+    command = {
+        "action": data.get("action"),
+        "value": data.get("value")
+    }
 
-@app.route("/lancer")
-def lancer():
-    key = request.args.get("key")
-    logiciel = request.args.get("logiciel")
+    return jsonify({"status": "ok"})
 
-    if key == SECRET:
-        command["action"] = logiciel
-        return "ok"
-    return "refuse"
 
 @app.route("/command")
 def get_command():
     global command
-    
-    # on récupère la commande actuelle
+
     current = command.copy()
-    
-    # on réinitialise immédiatement après lecture
-    command["action"] = ""
-    
+    command = {}  # reset après lecture
+
     return jsonify(current)
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(debug=True)
