@@ -12,6 +12,8 @@ def home():
 
 @app.route("/lancer")
 def lancer():
+    global command
+
     key = request.args.get("key")
     logiciel = request.args.get("logiciel")
 
