@@ -10,61 +10,46 @@ socketio = SocketIO(
     async_mode="eventlet"
 )
 
-# stockage des appareils
-# {device_id: last_seen}
 devices = {}
-
-# ⚡ TTL ultra court
-TTL = 2  # secondes
+TIMEOUT = 3  # si pas de signal → déconnecté
 
 
-def get_active_devices():
+def is_connected():
     now = time.time()
 
-    # supprimer immédiatement les appareils morts
-    dead_devices = [
-        device_id
-        for device_id, last_seen in devices.items()
-        if now - last_seen > TTL
-    ]
+    # nettoyage
+    for device_id in list(devices.keys()):
+        if now - devices[device_id] > TIMEOUT:
+            del devices[device_id]
 
-    for device_id in dead_devices:
-        del devices[device_id]
-
-    return len(devices)
+    return len(devices) > 0
 
 
-def send_update():
-    count = get_active_devices()
-    socketio.emit("update", {"count": count})
+def broadcast():
+    socketio.emit("status", {"connected": is_connected()})
 
 
 @socketio.on("heartbeat")
-def handle_heartbeat(data):
+def heartbeat(data):
     device_id = data.get("device_id")
 
-    if not device_id:
-        return
+    if device_id:
+        devices[device_id] = time.time()
 
-    # mise à jour du timestamp
-    devices[device_id] = time.time()
-
-    # 🔥 envoi instantané
-    send_update()
+    broadcast()
 
 
-# petit fallback (sécurité)
-def background_check():
+def loop():
     while True:
-        send_update()
+        broadcast()
         socketio.sleep(1)
 
 
-socketio.start_background_task(background_check)
+socketio.start_background_task(loop)
 
 
 @app.route("/")
-def index():
+def home():
     return "API OK"
 
 
