@@ -5,14 +5,13 @@ app = Flask(__name__)
 
 SECRET = "MON_CODE_SECRET"
 
-# Stockage des clients connectés
 clients = {}
 
 @app.route("/")
 def home():
     return "API OK"
 
-# 🔻 CLIENT → API (heartbeat)
+# 🔻 Ping client
 @app.route("/ping")
 def ping():
     key = request.args.get("key")
@@ -24,19 +23,17 @@ def ping():
     clients[pc_id] = time.time()
     return "ok"
 
-# 🔻 VOIR LES CLIENTS CONNECTÉS
-@app.route("/clients")
-def get_clients():
+# 🔻 Nombre de clients actifs
+@app.route("/count")
+def count_clients():
     now = time.time()
 
-    # On garde seulement ceux actifs < 10 sec
-    actifs = {
-        pc: round(now - last_seen, 1)
-        for pc, last_seen in clients.items()
+    actifs = [
+        pc for pc, last_seen in clients.items()
         if now - last_seen < 10
-    }
+    ]
 
-    return jsonify(actifs)
+    return jsonify({"count": len(actifs)})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
