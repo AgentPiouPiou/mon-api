@@ -1,10 +1,15 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import time
 
 app = Flask(__name__)
 
+# 🔥 Autorise ton site à accéder à l'API
+CORS(app)
+
 SECRET = "MON_CODE_SECRET"
 
+# Stockage des clients
 clients = {}
 
 @app.route("/")
@@ -21,6 +26,8 @@ def ping():
         return "refuse"
 
     clients[pc_id] = time.time()
+    print("PING :", pc_id)
+
     return "ok"
 
 # 🔻 Nombre de clients actifs
@@ -33,7 +40,6 @@ def count_clients():
         if now - last_seen < 10
     ]
 
-    return jsonify({"count": len(actifs)})
+    print("ACTIFS :", actifs)
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    return jsonify({"count": len(actifs)})
