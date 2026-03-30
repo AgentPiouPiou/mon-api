@@ -1,35 +1,42 @@
 from flask import Flask, request, jsonify
+import time
 
 app = Flask(__name__)
 
-command = {"action": ""}
-
 SECRET = "MON_CODE_SECRET"
+
+# Stockage des clients connectés
+clients = {}
 
 @app.route("/")
 def home():
     return "API OK"
 
-@app.route("/lancer")
-def lancer():
-    global command
-
+# 🔻 CLIENT → API (heartbeat)
+@app.route("/ping")
+def ping():
     key = request.args.get("key")
-    logiciel = request.args.get("logiciel")
+    pc_id = request.args.get("id")
 
-    if key == SECRET:
-        command["action"] = logiciel
-        return "ok"
-    return "refuse"
+    if key != SECRET:
+        return "refuse"
 
-@app.route("/command")
-def get_command():
-    global command
+    clients[pc_id] = time.time()
+    return "ok"
 
-    current = command.copy()
-    command["action"] = ""  # reset après lecture
+# 🔻 VOIR LES CLIENTS CONNECTÉS
+@app.route("/clients")
+def get_clients():
+    now = time.time()
 
-    return jsonify(current)
+    # On garde seulement ceux actifs < 10 sec
+    actifs = {
+        pc: round(now - last_seen, 1)
+        for pc, last_seen in clients.items()
+        if now - last_seen < 10
+    }
+
+    return jsonify(actifs)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
