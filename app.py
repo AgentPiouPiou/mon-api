@@ -10,57 +10,61 @@ socketio = SocketIO(
     async_mode="eventlet"
 )
 
-# {device_id: timestamp}
+# stockage des appareils
+# {device_id: last_seen}
 devices = {}
 
-TIMEOUT = 2  # suppression rapide
+# ⚡ TTL ultra court
+TTL = 2  # secondes
 
 
 def get_active_devices():
     now = time.time()
 
-    # suppression directe
-    to_delete = [
-        device_id for device_id, last_seen in devices.items()
-        if now - last_seen > TIMEOUT
+    # supprimer immédiatement les appareils morts
+    dead_devices = [
+        device_id
+        for device_id, last_seen in devices.items()
+        if now - last_seen > TTL
     ]
 
-    for device_id in to_delete:
+    for device_id in dead_devices:
         del devices[device_id]
 
     return len(devices)
 
 
-def broadcast():
-    socketio.emit("update", {"count": get_active_devices()})
+def send_update():
+    count = get_active_devices()
+    socketio.emit("update", {"count": count})
 
 
 @socketio.on("heartbeat")
-def heartbeat(data):
+def handle_heartbeat(data):
     device_id = data.get("device_id")
 
     if not device_id:
         return
 
-    # mise à jour du device
+    # mise à jour du timestamp
     devices[device_id] = time.time()
 
-    # envoi immédiat
-    broadcast()
+    # 🔥 envoi instantané
+    send_update()
 
 
-# backup nettoyage
-def cleanup_loop():
+# petit fallback (sécurité)
+def background_check():
     while True:
-        broadcast()
+        send_update()
         socketio.sleep(1)
 
 
-socketio.start_background_task(cleanup_loop)
+socketio.start_background_task(background_check)
 
 
 @app.route("/")
-def home():
+def index():
     return "API OK"
 
 
