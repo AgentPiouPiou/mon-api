@@ -1,27 +1,27 @@
 from flask import Flask
 from flask_socketio import SocketIO
 import time
+import uuid
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 devices = {}
-TIMEOUT = 3  # secondes sans ping = supprimé
+TIMEOUT = 3  # secondes sans signal = supprimé
 
 def cleanup():
     while True:
         now = time.time()
 
-        # supprimer appareils inactifs
         to_remove = [
             d for d, last in devices.items()
             if now - last > TIMEOUT
         ]
 
         for d in to_remove:
-            del devices[d]
+            devices.pop(d, None)
 
-        # envoyer MAJ en live
+        # broadcast du compteur
         socketio.emit("update", {"count": len(devices)})
 
         socketio.sleep(1)
@@ -39,7 +39,7 @@ def heartbeat(data):
     if device_id:
         devices[device_id] = time.time()
 
-    # MAJ instantanée
+    # mise à jour immédiate
     socketio.emit("update", {"count": len(devices)})
 
 if __name__ == "__main__":
