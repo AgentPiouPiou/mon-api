@@ -1,6 +1,5 @@
 from flask import Flask
 from flask_socketio import SocketIO
-import time
 
 app = Flask(__name__)
 
@@ -10,39 +9,31 @@ socketio = SocketIO(
     async_mode="eventlet"
 )
 
-devices = {}
-TIMEOUT = 3  # si pas de signal → déconnecté
+# état global (1 = actif, 0 = aucun signal)
+last_signal = 0
 
 
-def is_connected():
-    now = time.time()
+# réception du signal
+@socketio.on("ping")
+def ping():
+    global last_signal
+    last_signal = 1
 
-    # nettoyage
-    for device_id in list(devices.keys()):
-        if now - devices[device_id] > TIMEOUT:
-            del devices[device_id]
-
-    return len(devices) > 0
-
-
-def broadcast():
-    socketio.emit("status", {"connected": is_connected()})
-
-
-@socketio.on("heartbeat")
-def heartbeat(data):
-    device_id = data.get("device_id")
-
-    if device_id:
-        devices[device_id] = time.time()
-
-    broadcast()
+    socketio.emit("status", {"connected": True})
 
 
 def loop():
+    global last_signal
+
     while True:
-        broadcast()
-        socketio.sleep(1)
+        # si aucun signal reçu récemment → offline
+        if last_signal == 0:
+            socketio.emit("status", {"connected": False})
+        else:
+            # reset pour attendre le prochain signal
+            last_signal = 0
+
+        socketio.sleep(0.3)  # 🔥 très rapide
 
 
 socketio.start_background_task(loop)
