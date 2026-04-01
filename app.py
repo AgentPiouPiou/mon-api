@@ -7,14 +7,15 @@ app = Flask(__name__)
 socketio = SocketIO(
     app,
     cors_allowed_origins="*",
-    async_mode="eventlet"
+    async_mode="eventlet",
+    max_http_buffer_size=10 * 1024 * 1024  # images
 )
 
-# état global
 connected = False
 last_signal_time = 0
+last_frame = None
 
-TIMEOUT = 2  # secondes
+TIMEOUT = 2
 
 
 @socketio.on("status")
@@ -25,8 +26,16 @@ def status(data):
         connected = True
         last_signal_time = time.time()
 
-    # envoyer au site directement
     socketio.emit("update", {"connected": connected})
+
+
+@socketio.on("frame")
+def receive_frame(data):
+    global last_frame
+    last_frame = data
+
+    # broadcast au site
+    socketio.emit("frame", data)
 
 
 def check_loop():
