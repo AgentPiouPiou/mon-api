@@ -11,12 +11,11 @@ socketio = SocketIO(
     app,
     cors_allowed_origins="*",
     async_mode="eventlet",
-    max_http_buffer_size=20 * 1024 * 1024,  # buffer plus grand pour les images
+    max_http_buffer_size=50 * 1024 * 1024,  # buffer plus grand pour plusieurs écrans
     ping_timeout=10,
     ping_interval=5
 )
 
-# État global du client
 connected = False
 last_signal_time = 0
 TIMEOUT = 2  # secondes
@@ -33,7 +32,7 @@ def handle_status(data):
 
 @socketio.on("frames")
 def handle_frames(data):
-    # data : { "0": base64, "1": base64, ... }
+    # data : { "0": base64, "1": base64, ... , "mouse": {x, y, screen} }
     socketio.emit("frames", data)
 
 # ------------------ boucle de vérification ------------------
