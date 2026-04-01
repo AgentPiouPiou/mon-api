@@ -8,12 +8,11 @@ socketio = SocketIO(
     app,
     cors_allowed_origins="*",
     async_mode="eventlet",
-    max_http_buffer_size=10 * 1024 * 1024  # images
+    max_http_buffer_size=10 * 1024 * 1024
 )
 
 connected = False
 last_signal_time = 0
-last_frame = None
 
 TIMEOUT = 2
 
@@ -29,13 +28,10 @@ def status(data):
     socketio.emit("update", {"connected": connected})
 
 
-@socketio.on("frame")
-def receive_frame(data):
-    global last_frame
-    last_frame = data
-
-    # broadcast au site
-    socketio.emit("frame", data)
+@socketio.on("frames")
+def receive_frames(data):
+    # envoie toutes les images aux clients web
+    socketio.emit("frames", data)
 
 
 def check_loop():
