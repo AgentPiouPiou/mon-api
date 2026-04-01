@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 from flask import Flask
 from flask_socketio import SocketIO
 import time
@@ -8,7 +11,9 @@ socketio = SocketIO(
     app,
     cors_allowed_origins="*",
     async_mode="eventlet",
-    max_http_buffer_size=10 * 1024 * 1024
+    max_http_buffer_size=10 * 1024 * 1024,
+    ping_timeout=10,
+    ping_interval=5
 )
 
 connected = False
@@ -30,7 +35,6 @@ def status(data):
 
 @socketio.on("frames")
 def receive_frames(data):
-    # envoie toutes les images aux clients web
     socketio.emit("frames", data)
 
 
