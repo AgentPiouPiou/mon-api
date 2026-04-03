@@ -11,7 +11,6 @@ socketio = SocketIO(
     app,
     cors_allowed_origins="*",
     async_mode="eventlet",
-    max_http_buffer_size=100 * 1024 * 1024,
     ping_timeout=10,
     ping_interval=5
 )
@@ -21,7 +20,8 @@ last_signal_time = 0
 TIMEOUT = 2
 
 
-# -------- STATUS --------
+# ------------------ STATUS ------------------
+
 @socketio.on("status")
 def status(data):
     global connected, last_signal_time
@@ -33,26 +33,33 @@ def status(data):
     socketio.emit("update", {"connected": connected})
 
 
-# 🔥 FIX MOBILE
 @socketio.on("status_check")
 def status_check():
     socketio.emit("update", {"connected": connected})
 
 
-# -------- VIDEO --------
+# ------------------ VIDEO ------------------
+
 @socketio.on("frames")
-def frames(data):
+def receive_frames(data):
     socketio.emit("frames", data)
 
 
-# -------- SOURIS --------
+# ------------------ SOURIS ------------------
+
 @socketio.on("move_mouse")
 def move_mouse(data):
     socketio.emit("move_mouse", data)
 
 
-# -------- CHECK --------
-def loop():
+@socketio.on("click")
+def click(data):
+    socketio.emit("click", data)
+
+
+# ------------------ CHECK CONNECTION ------------------
+
+def check_loop():
     global connected, last_signal_time
 
     while True:
@@ -63,13 +70,17 @@ def loop():
         socketio.sleep(0.5)
 
 
-socketio.start_background_task(loop)
+socketio.start_background_task(check_loop)
 
+
+# ------------------ ROUTE ------------------
 
 @app.route("/")
 def home():
     return "API OK"
 
+
+# ------------------ RUN ------------------
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)
