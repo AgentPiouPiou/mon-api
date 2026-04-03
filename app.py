@@ -20,40 +20,56 @@ connected = False
 last_signal_time = 0
 TIMEOUT = 2
 
-# ---------------- STATUS ----------------
+
+# -------- STATUS --------
 @socketio.on("status")
 def status(data):
     global connected, last_signal_time
+
     if data == "connected":
         connected = True
         last_signal_time = time.time()
 
     socketio.emit("update", {"connected": connected})
 
-# ---------------- VIDEO ----------------
+
+# 🔥 FIX MOBILE
+@socketio.on("status_check")
+def status_check():
+    socketio.emit("update", {"connected": connected})
+
+
+# -------- VIDEO --------
 @socketio.on("frames")
-def receive_frames(data):
+def frames(data):
     socketio.emit("frames", data)
 
-# ---------------- SOURIS ----------------
+
+# -------- SOURIS --------
 @socketio.on("move_mouse")
 def move_mouse(data):
     socketio.emit("move_mouse", data)
 
-# ---------------- CHECK ----------------
-def check_loop():
+
+# -------- CHECK --------
+def loop():
     global connected, last_signal_time
+
     while True:
         if connected and time.time() - last_signal_time > TIMEOUT:
             connected = False
             socketio.emit("update", {"connected": False})
+
         socketio.sleep(0.5)
 
-socketio.start_background_task(check_loop)
+
+socketio.start_background_task(loop)
+
 
 @app.route("/")
 def home():
     return "API OK"
+
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)
